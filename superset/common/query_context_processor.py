@@ -66,7 +66,7 @@ from superset.utils.core import (
 from superset.utils.date_parser import get_past_or_future, normalize_time_delta
 from superset.utils.pandas_postprocessing.utils import unescape_separator
 from superset.views.utils import get_viz
-from superset.viz import viz_types
+from superset.viz import get_viz_types
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -704,7 +704,7 @@ class QueryContextProcessor:
             raise QueryObjectValidationError(_("The chart does not exist"))
 
         try:
-            if chart.viz_type in viz_types:
+            if chart.viz_type in get_viz_types():
                 if not chart.datasource:
                     raise QueryObjectValidationError(
                         _("The chart datasource does not exist"),

@@ -71,6 +71,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.superset_app = app
         self.config = app.config
         self.manifest: dict[Any, Any] = {}
+        self.stats_logger = app.config["STATS_LOGGER"]
 
     @deprecated(details="use self.superset_app instead of self.flask_app")  # type: ignore
     @property

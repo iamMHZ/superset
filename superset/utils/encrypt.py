@@ -18,13 +18,17 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 
-from flask import Flask
+from flask import current_app as app
 from flask_babel import lazy_gettext as _
 from sqlalchemy import text, TypeDecorator
 from sqlalchemy.engine import Connection, Dialect, Row
 from sqlalchemy_utils import EncryptedType
 
 logger = logging.getLogger(__name__)
+
+
+def get_key() -> str:
+    return app.config["SECRET_KEY"]
 
 
 class AbstractEncryptedFieldAdapter(ABC):  # pylint: disable=too-few-public-methods
@@ -47,22 +51,15 @@ class SQLAlchemyUtilsAdapter(  # pylint: disable=too-few-public-methods
         *args: list[Any],
         **kwargs: Optional[dict[str, Any]],
     ) -> TypeDecorator:
-        if app_config:
-            return EncryptedType(*args, app_config["SECRET_KEY"], **kwargs)
-
-        raise Exception(  # pylint: disable=broad-exception-raised
-            "Missing app_config kwarg"
-        )
+        return EncryptedType(*args, get_key, **kwargs)
 
 
 class EncryptedFieldFactory:
     def __init__(self) -> None:
         self._concrete_type_adapter: Optional[AbstractEncryptedFieldAdapter] = None
-        self._config: Optional[dict[str, Any]] = None
 
-    def init_app(self, app: Flask) -> None:
-        self._config = app.config
-        self._concrete_type_adapter = self._config[  # type: ignore
+    def init_app(self, *args, **kwargs) -> None:  # type: ignore # pylint: disable=unused-argument
+        self._concrete_type_adapter = app.config[
             "SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER"
         ]()
 
@@ -70,11 +67,8 @@ class EncryptedFieldFactory:
         self, *args: list[Any], **kwargs: Optional[dict[str, Any]]
     ) -> TypeDecorator:
         if self._concrete_type_adapter:
-            return self._concrete_type_adapter.create(self._config, *args, **kwargs)
-
-        raise Exception(  # pylint: disable=broad-exception-raised
-            "App not initialized yet. Please call init_app first"
-        )
+            return self._concrete_type_adapter.create(app.config, *args, **kwargs)
+        return None
 
 
 class SecretsMigrator:

@@ -49,7 +49,6 @@ from superset.models.sql_lab import Query
 from superset.superset_typing import FormData
 from superset.utils.core import DatasourceType
 from superset.utils.decorators import stats_timing
-from superset.viz import BaseViz
 
 logger = logging.getLogger(__name__)
 stats_logger = app.config["STATS_LOGGER"]
@@ -124,13 +123,14 @@ def get_viz(
     datasource_id: int,
     force: bool = False,
     force_cached: bool = False,
-) -> BaseViz:
+) -> viz.BaseViz:
     viz_type = form_data.get("viz_type", "table")
     datasource = DatasourceDAO.get_datasource(
         DatasourceType(datasource_type),
         datasource_id,
     )
-    viz_obj = viz.viz_types[viz_type](
+    viz_types = viz.get_viz_types()
+    viz_obj = viz_types[viz_type](
         datasource, form_data=form_data, force=force, force_cached=force_cached
     )
     return viz_obj

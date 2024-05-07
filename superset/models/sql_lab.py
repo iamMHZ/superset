@@ -148,7 +148,7 @@ class Query(
         foreign_keys=[database_id],
         backref=backref("queries", cascade="all, delete-orphan"),
     )
-    user = relationship(security_manager.user_model, foreign_keys=[user_id])
+    user = relationship("User", foreign_keys=[user_id])
 
     __table_args__ = (sqla.Index("ti_user_id_changed_on", user_id, changed_on),)
 
@@ -395,7 +395,7 @@ class SavedQuery(
     sql = Column(MediumText())
     template_parameters = Column(Text)
     user = relationship(
-        security_manager.user_model,
+        "User",
         backref=backref("saved_queries", cascade="all, delete-orphan"),
         foreign_keys=[user_id],
     )
