@@ -144,7 +144,7 @@ class AbstractEventLogger(ABC):
         **payload_override: dict[str, Any] | None,
     ) -> None:
         # pylint: disable=import-outside-toplevel
-        from superset import db
+        from superset.extensions import db
         from superset.views.core import get_form_data
 
         referrer = request.referrer[:1000] if request and request.referrer else None
@@ -340,7 +340,7 @@ class DBEventLogger(AbstractEventLogger):
         **kwargs: Any,
     ) -> None:
         # pylint: disable=import-outside-toplevel
-        from superset import db
+        from superset.extensions import db
         from superset.models.core import Log
 
         records = kwargs.get("records", [])
