@@ -24,6 +24,7 @@ from importlib.resources import files
 from typing import Any, Callable, TYPE_CHECKING
 
 import simplejson as json
+import sqlalchemy as sqla
 import wtforms_json
 from deprecation import deprecated
 from flask import (
@@ -62,14 +63,18 @@ from superset.extensions import (
     migrate,
     profiling,
     results_backend_manager,
+    security_manager,
     ssh_manager_factory,
     stats_logger_manager,
     talisman,
 )
 from superset.initialization.bootstrap import common_bootstrap_payload
+from superset.models.core import Database
 from superset.security import SupersetSecurityManager
 from superset.superset_typing import FlaskResponse
-from superset.tags.core import register_sqla_event_listeners
+from superset.tags.core import (
+    register_sqla_event_listeners as register_tag_event_listeners,
+)
 from superset.utils import core as utils
 from superset.utils.core import is_test, pessimistic_connection_handling
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
@@ -447,11 +452,32 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         if flask_app_mutator := self.config["FLASK_APP_MUTATOR"]:
             flask_app_mutator(self.app)
 
-        if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
-            register_sqla_event_listeners()
-
         self.init_views()
+
+        self.register_sqla_event_listeners()
         self.register_error_handlers()
+
+    def register_sqla_event_listeners(self) -> None:
+        # TODO move all sqla.event.listen to this method
+        if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+            register_tag_event_listeners()
+
+        # Using lambdas for security manager to prevent referencing it in module scope
+        sqla.event.listen(
+            Database,
+            "after_insert",
+            security_manager.database_after_insert,
+        )
+        sqla.event.listen(
+            Database,
+            "after_update",
+            security_manager.database_after_update,
+        )
+        sqla.event.listen(
+            Database,
+            "after_delete",
+            security_manager.database_after_delete,
+        )
 
     def register_error_handlers(self) -> None:
         # SIP-40 compatible error responses; make sure APIs raise

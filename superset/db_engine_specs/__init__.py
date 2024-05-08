@@ -194,3 +194,14 @@ def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:
         available_engines[engine_spec] = driver
 
     return available_engines
+
+
+def get_available_dialects() -> set[str]:
+    """
+    Return available dialects in the current environment.
+    """
+    all_dialects: set[str] = set()
+    for _, dialects in get_available_engine_specs().values():
+        for dialect in dialects:
+            all_dialects.add(dialect)
+    return all_dialects

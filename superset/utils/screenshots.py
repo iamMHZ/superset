@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING
 
 from flask import current_app as app
 
-from superset import feature_flag_manager
+from superset.extensions import feature_flag_manager
 from superset.utils.hashing import md5_sha_from_dict
 from superset.utils.urls import modify_url_query
 from superset.utils.webdriver import (

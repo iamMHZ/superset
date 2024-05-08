@@ -22,8 +22,7 @@ from flask import current_app as app, g, get_flashed_messages, session
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import get_locale
 
-from superset.db_engine_specs import get_available_engine_specs
-from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+from superset.db_engine_specs import get_available_dialects
 from superset.extensions import appbuilder, cache_manager, feature_flag_manager
 from superset.reports.models import ReportRecipientType
 from superset.translations.utils import get_language_pack
@@ -168,9 +167,11 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
             ReportRecipientType.EMAIL,
         ]
 
+    # TODO maybe we should pass all dialects to define what's visible in the UI (?)
+
     # verify client has google sheets installed
-    available_specs = get_available_engine_specs()
-    frontend_config["HAS_GSHEETS_INSTALLED"] = bool(available_specs[GSheetsEngineSpec])
+    available_dialects = get_available_dialects()
+    frontend_config["HAS_GSHEETS_INSTALLED"] = bool("gsheets" in available_dialects)
 
     language = locale.language if locale else "en"
 

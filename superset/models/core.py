@@ -1074,24 +1074,6 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         return self.db_engine_spec.get_oauth2_config()
 
 
-# Using lambdas for security manager to prevent referencing it in module scope
-sqla.event.listen(
-    Database,
-    "after_insert",
-    lambda *args, **kwargs: security_manager.database_after_insert(*args, **kwargs),  # pylint: disable=unnecessary-lambda
-)
-sqla.event.listen(
-    Database,
-    "after_update",
-    lambda *args, **kwargs: security_manager.database_after_update(*args, **kwargs),  # pylint: disable=unnecessary-lambda
-)
-sqla.event.listen(
-    Database,
-    "after_delete",
-    lambda *args, **kwargs: security_manager.database_after_delete(*args, **kwargs),  # pylint: disable=unnecessary-lambda
-)
-
-
 class DatabaseUserOAuth2Tokens(Model, AuditMixinNullable):
     """
     Store OAuth2 tokens, for authenticating to DBs using user personal tokens.
