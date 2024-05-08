@@ -25,7 +25,7 @@ from superset.extensions import (
     cache_manager,
     db,  # noqa: F401
     event_logger,  # noqa: F401
-    feature_flag_manager,
+    feature_flag_manager,  # noqa: F401
     manifest_processor,
     results_backend_manager,
     security_manager,  # noqa: F401
@@ -40,9 +40,7 @@ from superset.security import SupersetSecurityManager  # noqa: F401
 app: Flask = current_app
 cache = cache_manager.cache
 conf = LocalProxy(lambda: current_app.config)
-get_feature_flags = feature_flag_manager.get_feature_flags
 get_manifest_files = manifest_processor.get_manifest_files
-is_feature_enabled = feature_flag_manager.is_feature_enabled
 results_backend = LocalProxy(lambda: results_backend_manager.results_backend)
 results_backend_use_msgpack = LocalProxy(
     lambda: results_backend_manager.should_use_msgpack

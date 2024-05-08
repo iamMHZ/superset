@@ -19,13 +19,12 @@ from typing import Any, cast, Optional
 from urllib import parse
 
 import simplejson as json
-from flask import request, Response
+from flask import current_app as app, request, Response
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 
-from superset import app, is_feature_enabled
 from superset.commands.sql_lab.estimate import QueryEstimationCommand
 from superset.commands.sql_lab.execute import CommandResult, ExecuteSqlCommand
 from superset.commands.sql_lab.export import SqlResultExportCommand
@@ -33,7 +32,7 @@ from superset.commands.sql_lab.results import SqlExecutionResultsCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.daos.database import DatabaseDAO
 from superset.daos.query import QueryDAO
-from superset.extensions import event_logger
+from superset.extensions import event_logger, feature_flag_manager
 from superset.jinja_context import get_template_processor
 from superset.models.sql_lab import Query
 from superset.sql_lab import get_sql_results
@@ -459,6 +458,6 @@ class SqlLabRestApi(BaseSupersetApi):
                 query_dao,
                 get_sql_results,
                 config.get("SQLLAB_TIMEOUT"),
-                is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE"),
+                feature_flag_manager.is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE"),
             )
         return sql_json_executor

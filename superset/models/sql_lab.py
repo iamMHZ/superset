@@ -48,8 +48,8 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.sql.elements import ColumnElement, literal_column
 
-from superset import security_manager
 from superset.exceptions import SupersetSecurityException
+from superset.extensions import security_manager
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.models.helpers import (
     AuditMixinNullable,

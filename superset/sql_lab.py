@@ -26,12 +26,10 @@ import backoff
 import msgpack
 import simplejson as json
 from celery.exceptions import SoftTimeLimitExceeded
+from flask import current_app as app
 from flask_babel import gettext as __
 
 from superset import (
-    app,
-    db,
-    is_feature_enabled,
     results_backend,
     results_backend_use_msgpack,
     security_manager,
@@ -46,7 +44,7 @@ from superset.exceptions import (
     SupersetErrorException,
     SupersetErrorsException,
 )
-from superset.extensions import celery_app, event_logger
+from superset.extensions import celery_app, db, event_logger, feature_flag_manager
 from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
@@ -204,7 +202,7 @@ def execute_sql_statement(  # pylint: disable=too-many-statements
     db_engine_spec = database.db_engine_spec
 
     parsed_query = ParsedQuery(sql_statement, engine=db_engine_spec.engine)
-    if is_feature_enabled("RLS_IN_SQLLAB"):
+    if feature_flag_manager.is_feature_enabled("RLS_IN_SQLLAB"):
         # There are two ways to insert RLS: either replacing the table with a subquery
         # that has the RLS, or appending the RLS to the ``WHERE`` clause. The former is
         # safer, but not supported in all databases.

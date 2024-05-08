@@ -54,7 +54,6 @@ from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 from sqlalchemy_utils import UUIDType
 
-from superset import db, is_feature_enabled, security_manager
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.common.db_query_status import QueryStatus
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
@@ -69,7 +68,7 @@ from superset.exceptions import (
     SupersetParseError,
     SupersetSecurityException,
 )
-from superset.extensions import feature_flag_manager
+from superset.extensions import db, feature_flag_manager, security_manager
 from superset.jinja_context import BaseTemplateProcessor
 from superset.sql_parse import (
     has_table_query,
@@ -129,7 +128,7 @@ def validate_adhoc_subquery(
     statements = []
     for statement in sqlparse.parse(sql):
         if has_table_query(statement):
-            if not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
+            if not feature_flag_manager.is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
                 raise SupersetSecurityException(
                     SupersetError(
                         error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
@@ -827,7 +826,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 else:
                     all_filters.append(clause)
 
-            if is_feature_enabled("EMBEDDED_SUPERSET"):
+            if feature_flag_manager.is_feature_enabled("EMBEDDED_SUPERSET"):
                 for rule in security_manager.get_guest_rls_filters(self):
                     clause = self.text(
                         f"({template_processor.process_template(rule['clause'])})"

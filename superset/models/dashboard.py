@@ -43,9 +43,9 @@ from sqlalchemy.orm import relationship, subqueryload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.sql.elements import BinaryExpression
 
-from superset import db, is_feature_enabled, security_manager
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.daos.datasource import DatasourceDAO
+from superset.extensions import db, feature_flag_manager, security_manager
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.slice import Slice
 from superset.models.user_attributes import UserAttribute
@@ -417,7 +417,7 @@ def id_or_slug_filter(id_or_slug: int | str) -> BinaryExpression:
 
 OnDashboardChange = Callable[[Mapper, Connection, Dashboard], Any]
 
-if is_feature_enabled("THUMBNAILS_SQLA_LISTENERS"):
+if feature_flag_manager.is_feature_enabled("THUMBNAILS_SQLA_LISTENERS"):
     update_thumbnail: OnDashboardChange = lambda _, __, dash: dash.update_thumbnail()  # noqa: E731
     sqla.event.listen(Dashboard, "after_insert", update_thumbnail)
     sqla.event.listen(Dashboard, "after_update", update_thumbnail)

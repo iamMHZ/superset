@@ -25,7 +25,6 @@ from func_timeout import func_timeout, FunctionTimedOut
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import DBAPIError, NoSuchModuleError
 
-from superset import is_feature_enabled
 from superset.commands.base import BaseCommand
 from superset.commands.database.exceptions import (
     DatabaseSecurityUnsafeError,
@@ -45,7 +44,7 @@ from superset.exceptions import (
     SupersetSecurityException,
     SupersetTimeoutException,
 )
-from superset.extensions import event_logger
+from superset.extensions import event_logger, feature_flag_manager
 from superset.models.core import Database
 from superset.utils.ssh_tunnel import unmask_password_info
 
@@ -234,7 +233,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
 
     def validate(self) -> None:
         if self._properties.get("ssh_tunnel"):
-            if not is_feature_enabled("SSH_TUNNELING"):
+            if not feature_flag_manager.is_feature_enabled("SSH_TUNNELING"):
                 raise SSHTunnelingNotEnabledError()
             if not self._context.get("port"):
                 raise SSHTunnelDatabasePortError()

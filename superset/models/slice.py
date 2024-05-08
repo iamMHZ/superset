@@ -39,7 +39,7 @@ from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.mapper import Mapper
 
-from superset import db, is_feature_enabled
+from superset.extensions import db, feature_flag_manager
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.tasks.thumbnails import cache_chart_thumbnail
@@ -383,7 +383,7 @@ def event_after_chart_changed(
 sqla.event.listen(Slice, "before_insert", set_related_perm)
 sqla.event.listen(Slice, "before_update", set_related_perm)
 
-thumbs_on: bool = is_feature_enabled("THUMBNAILS_SQLA_LISTENERS")
+thumbs_on: bool = feature_flag_manager.is_feature_enabled("THUMBNAILS_SQLA_LISTENERS")
 
 if thumbs_on:
     sqla.event.listen(Slice, "after_insert", event_after_chart_changed)
