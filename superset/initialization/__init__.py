@@ -27,7 +27,7 @@ import simplejson as json
 import wtforms_json
 from deprecation import deprecated
 from flask import (
-    current_app as app,
+    # current_app as app,
     Flask,
     redirect,
     request,
@@ -66,6 +66,7 @@ from superset.extensions import (
     stats_logger_manager,
     talisman,
 )
+from superset.initialization.bootstrap import common_bootstrap_payload
 from superset.security import SupersetSecurityManager
 from superset.superset_typing import FlaskResponse
 from superset.tags.core import register_sqla_event_listeners
@@ -480,7 +481,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             logger.warning("HTTPException", exc_info=True)
             if (
                 "text/html" in request.accept_mimetypes
-                and not app.config["DEBUG"]
+                and not self.app.config["DEBUG"]
                 and ex.code in {404, 500}
             ):
                 path = files("superset") / f"static/assets/{ex.code}.html"
@@ -503,7 +504,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         @self.app.errorhandler(CommandException)
         def show_command_errors(ex: CommandException) -> FlaskResponse:
             logger.warning("CommandException", exc_info=True)
-            if "text/html" in request.accept_mimetypes and not app.config["DEBUG"]:
+            if "text/html" in request.accept_mimetypes and not self.app.config["DEBUG"]:
                 path = files("superset") / "static/assets/500.html"
                 return send_file(path, max_age=0), 500
 
@@ -526,7 +527,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         @self.app.errorhandler(Exception)
         def show_unexpected_exception(ex: Exception) -> FlaskResponse:
             logger.exception(ex)
-            if "text/html" in request.accept_mimetypes and not app.config["DEBUG"]:
+            if "text/html" in request.accept_mimetypes and not self.app.config["DEBUG"]:
                 path = files("superset") / "static/assets/500.html"
                 return send_file(path, max_age=0), 500
 
@@ -556,10 +557,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
             # HTTP_HEADERS is deprecated, this provides backwards compatibility
             response.headers.extend(
-                {**app.config["OVERRIDE_HTTP_HEADERS"], **app.config["HTTP_HEADERS"]}
+                {
+                    **self.app.config["OVERRIDE_HTTP_HEADERS"],
+                    **self.app.config["HTTP_HEADERS"],
+                }
             )
 
-            for k, v in app.config["DEFAULT_HTTP_HEADERS"].items():
+            for k, v in self.app.config["DEFAULT_HTTP_HEADERS"].items():
                 if k not in response.headers:
                     response.headers[k] = v
             return response

@@ -36,7 +36,7 @@ import numpy
 import pandas as pd
 import sqlalchemy as sqla
 import sshtunnel
-from flask import g, request
+from flask import current_app as app, g, request
 from flask_appbuilder import Model
 from sqlalchemy import (
     Boolean,
@@ -60,7 +60,7 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import ColumnElement, expression, Select
 
-from superset import app, db_engine_specs
+from superset import db_engine_specs
 from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.constants import LRU_CACHE_MAX_SIZE, PASSWORD_MASK
 from superset.databases.utils import make_url_safe

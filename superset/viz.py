@@ -40,12 +40,11 @@ import polyline
 import simplejson as json
 from dateutil import relativedelta as rdelta
 from deprecation import deprecated
-from flask import request
+from flask import current_app as app, request
 from flask_babel import lazy_gettext as _
 from geopy.point import Point
 from pandas.tseries.frequencies import to_offset
 
-from superset import app
 from superset.common.db_query_status import QueryStatus
 from superset.constants import NULL_STRING
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType

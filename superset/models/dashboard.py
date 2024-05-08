@@ -23,6 +23,7 @@ from collections import defaultdict
 from typing import Any, Callable
 
 import sqlalchemy as sqla
+from flask import current_app as app
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.security.sqla.models import User
@@ -42,7 +43,7 @@ from sqlalchemy.orm import relationship, subqueryload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.sql.elements import BinaryExpression
 
-from superset import app, db, is_feature_enabled, security_manager
+from superset import db, is_feature_enabled, security_manager
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.daos.datasource import DatasourceDAO
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
