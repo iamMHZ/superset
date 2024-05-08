@@ -23,10 +23,10 @@ from typing import Any, ClassVar, TYPE_CHECKING, TypedDict
 
 import numpy as np
 import pandas as pd
+from flask import current_app as app
 from flask_babel import gettext as _
 from pandas import DateOffset
 
-from superset import app
 from superset.common.chart_data import ChartDataResultFormat
 from superset.common.db_query_status import QueryStatus
 from superset.common.query_actions import get_query_results
