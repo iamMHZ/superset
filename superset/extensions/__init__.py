@@ -29,7 +29,7 @@ from werkzeug.local import LocalProxy
 
 from superset.async_events.async_query_manager import AsyncQueryManager
 from superset.async_events.async_query_manager_factory import AsyncQueryManagerFactory
-from superset.extensions.event_logger import EventLoggerManager
+from superset.extensions.event_logger_manager import EventLoggerManager
 from superset.extensions.ssh import SSHManagerFactory
 from superset.extensions.stats_logger import BaseStatsLoggerManager
 from superset.utils.cache_manager import CacheManager
