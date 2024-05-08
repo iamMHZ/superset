@@ -59,6 +59,8 @@ from superset.models.helpers import (
 )
 from superset.sql_parse import CtasMethod, extract_tables_from_jinja_sql, Table
 from superset.sqllab.limiting_factor import LimitingFactor
+
+# Import required for sqlalchemy's order of operations
 from superset.tags.models import TaggedObject  # pylint: disable=unused-import # noqa
 from superset.utils.core import get_column_name, MediumText, QueryStatus, user_label
 
