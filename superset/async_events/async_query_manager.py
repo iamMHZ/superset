@@ -23,6 +23,7 @@ import jwt
 import redis
 from flask import Flask, Request, request, Response, session
 
+from superset.extensions import security_manager
 from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
@@ -121,8 +122,7 @@ class AsyncQueryManager:
         if config["GLOBAL_ASYNC_QUERIES_REGISTER_REQUEST_HANDLERS"]:
             self.register_request_handlers(app)
 
-        # pylint: disable=import-outside-toplevel
-        from superset.tasks.async_queries import (
+        from superset.tasks.async_queries import (  # pylint: disable=import-outside-toplevel
             load_chart_data_into_cache,
             load_explore_json_into_cache,
         )
@@ -191,9 +191,6 @@ class AsyncQueryManager:
         force: Optional[bool] = False,
         user_id: Optional[int] = None,
     ) -> dict[str, Any]:
-        # pylint: disable=import-outside-toplevel
-        from superset import security_manager
-
         job_metadata = self.init_job(channel_id, user_id)
         self._load_explore_json_into_cache_job.delay(
             {**job_metadata, "guest_token": guest_user.guest_token}
@@ -211,9 +208,6 @@ class AsyncQueryManager:
         form_data: dict[str, Any],
         user_id: Optional[int] = None,
     ) -> dict[str, Any]:
-        # pylint: disable=import-outside-toplevel
-        from superset import security_manager
-
         # if it's guest user, we want to pass the guest token to the celery task
         # chart data cache key is calculated based on the current user
         # this way we can keep the cache key consistent between sync and async command
