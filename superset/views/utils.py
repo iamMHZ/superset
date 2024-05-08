@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import contextlib
+import dataclasses
 import logging
 from collections import defaultdict
 from functools import wraps
@@ -46,7 +47,8 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
-from superset.superset_typing import FormData
+from superset.superset_typing import FlaskResponse, FormData
+from superset.utils import core as utils
 from superset.utils.core import DatasourceType
 from superset.utils.decorators import stats_timing
 
@@ -550,3 +552,22 @@ def get_cta_schema_name(
 def redirect_with_flash(url: str, message: str, category: str) -> Response:
     flash(message=message, category=category)
     return redirect(url)
+
+
+def json_errors_response(
+    errors: list[SupersetError],
+    status: int = 500,
+    payload: dict[str, Any] | None = None,
+) -> FlaskResponse:
+    payload = payload or {}
+
+    payload["errors"] = [dataclasses.asdict(error) for error in errors]
+    return Response(
+        json.dumps(payload, default=utils.json_iso_dttm_ser, ignore_nan=True),
+        status=status,
+        mimetype="application/json; charset=utf-8",
+    )
+
+
+def json_success(json_msg: str, status: int = 200) -> FlaskResponse:
+    return Response(json_msg, status=status, mimetype="application/json")

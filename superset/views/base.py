@@ -16,13 +16,11 @@
 # under the License.
 from __future__ import annotations
 
-import dataclasses
 import functools
 import logging
 import os
 import traceback
 from datetime import datetime
-from importlib.resources import files
 from typing import Any, Callable, cast
 
 import simplejson as json
@@ -34,9 +32,7 @@ from flask import (
     g,
     get_flashed_messages,
     redirect,
-    request,
     Response,
-    send_file,
     session,
 )
 from flask_appbuilder import BaseView, Model, ModelView
@@ -47,7 +43,6 @@ from flask_appbuilder.security.sqla.models import User
 from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale, gettext as __, lazy_gettext as _
 from flask_jwt_extended.exceptions import NoAuthorizationError
-from flask_wtf.csrf import CSRFError
 from flask_wtf.form import FlaskForm
 from sqlalchemy import exc
 from sqlalchemy.orm import Query
@@ -56,18 +51,15 @@ from wtforms import Form
 from wtforms.fields.core import Field, UnboundField
 
 from superset import (
-    app,
     appbuilder,
     conf,
     get_feature_flags,
     is_feature_enabled,
     security_manager,
 )
-from superset.commands.exceptions import CommandException, CommandInvalidError
 from superset.connectors.sqla import models
 from superset.db_engine_specs import get_available_engine_specs
 from superset.db_engine_specs.gsheets import GSheetsEngineSpec
-from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetErrorException,
     SupersetErrorsException,
@@ -82,7 +74,7 @@ from superset.translations.utils import get_language_pack
 from superset.utils import core as utils
 from superset.utils.filters import get_dataset_access_filters
 
-from .utils import bootstrap_user_data
+from .utils import bootstrap_user_data, json_errors_response, json_success
 
 FRONTEND_CONF_KEYS = (
     "SUPERSET_WEBSERVER_TIMEOUT",
@@ -152,25 +144,6 @@ def json_error_response(
         status=status,
         mimetype="application/json",
     )
-
-
-def json_errors_response(
-    errors: list[SupersetError],
-    status: int = 500,
-    payload: dict[str, Any] | None = None,
-) -> FlaskResponse:
-    payload = payload or {}
-
-    payload["errors"] = [dataclasses.asdict(error) for error in errors]
-    return Response(
-        json.dumps(payload, default=utils.json_iso_dttm_ser, ignore_nan=True),
-        status=status,
-        mimetype="application/json; charset=utf-8",
-    )
-
-
-def json_success(json_msg: str, status: int = 200) -> FlaskResponse:
-    return Response(json_msg, status=status, mimetype="application/json")
 
 
 def data_payload_response(payload_json: str, has_error: bool = False) -> FlaskResponse:
@@ -377,173 +350,6 @@ def menu_data(user: User) -> dict[str, Any]:
     }
 
 
-@cache_manager.cache.memoize(timeout=60)
-def cached_common_bootstrap_data(  # pylint: disable=unused-argument
-    user_id: int | None, locale: Locale | None
-) -> dict[str, Any]:
-    """Common data always sent to the client
-
-    The function is memoized as the return value only changes when user permissions
-    or configuration values change.
-    """
-
-    # should not expose API TOKEN to frontend
-    frontend_config = {
-        k: (list(conf.get(k)) if isinstance(conf.get(k), set) else conf.get(k))
-        for k in FRONTEND_CONF_KEYS
-    }
-
-    if conf.get("SLACK_API_TOKEN"):
-        frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
-            ReportRecipientType.EMAIL,
-            ReportRecipientType.SLACK,
-        ]
-    else:
-        frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
-            ReportRecipientType.EMAIL,
-        ]
-
-    # verify client has google sheets installed
-    available_specs = get_available_engine_specs()
-    frontend_config["HAS_GSHEETS_INSTALLED"] = bool(available_specs[GSheetsEngineSpec])
-
-    language = locale.language if locale else "en"
-
-    bootstrap_data = {
-        "conf": frontend_config,
-        "locale": language,
-        "language_pack": get_language_pack(language),
-        "d3_format": conf.get("D3_FORMAT"),
-        "currencies": conf.get("CURRENCIES"),
-        "feature_flags": get_feature_flags(),
-        "extra_sequential_color_schemes": conf["EXTRA_SEQUENTIAL_COLOR_SCHEMES"],
-        "extra_categorical_color_schemes": conf["EXTRA_CATEGORICAL_COLOR_SCHEMES"],
-        "theme_overrides": conf["THEME_OVERRIDES"],
-        "menu_data": menu_data(g.user),
-    }
-    bootstrap_data.update(conf["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
-    return bootstrap_data
-
-
-def common_bootstrap_payload() -> dict[str, Any]:
-    return {
-        **cached_common_bootstrap_data(utils.get_user_id(), get_locale()),
-        "flash_messages": get_flashed_messages(with_categories=True),
-    }
-
-
-def get_error_level_from_status_code(  # pylint: disable=invalid-name
-    status: int,
-) -> ErrorLevel:
-    if status < 400:
-        return ErrorLevel.INFO
-    if status < 500:
-        return ErrorLevel.WARNING
-    return ErrorLevel.ERROR
-
-
-# SIP-40 compatible error responses; make sure APIs raise
-# SupersetErrorException or SupersetErrorsException
-@app.errorhandler(SupersetErrorException)
-def show_superset_error(ex: SupersetErrorException) -> FlaskResponse:
-    logger.warning("SupersetErrorException", exc_info=True)
-    return json_errors_response(errors=[ex.error], status=ex.status)
-
-
-@app.errorhandler(SupersetErrorsException)
-def show_superset_errors(ex: SupersetErrorsException) -> FlaskResponse:
-    logger.warning("SupersetErrorsException", exc_info=True)
-    return json_errors_response(errors=ex.errors, status=ex.status)
-
-
-# Redirect to login if the CSRF token is expired
-@app.errorhandler(CSRFError)
-def refresh_csrf_token(ex: CSRFError) -> FlaskResponse:
-    logger.warning("Refresh CSRF token error", exc_info=True)
-
-    if request.is_json:
-        return show_http_exception(ex)
-
-    return redirect(appbuilder.get_url_for_login)
-
-
-@app.errorhandler(HTTPException)
-def show_http_exception(ex: HTTPException) -> FlaskResponse:
-    logger.warning("HTTPException", exc_info=True)
-    if (
-        "text/html" in request.accept_mimetypes
-        and not app.config["DEBUG"]
-        and ex.code in {404, 500}
-    ):
-        path = files("superset") / f"static/assets/{ex.code}.html"
-        return send_file(path, max_age=0), ex.code
-
-    return json_errors_response(
-        errors=[
-            SupersetError(
-                message=utils.error_msg_from_exception(ex),
-                error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
-                level=ErrorLevel.ERROR,
-            ),
-        ],
-        status=ex.code or 500,
-    )
-
-
-# Temporary handler for CommandException; if an API raises a
-# CommandException it should be fixed to map it to SupersetErrorException
-# or SupersetErrorsException, with a specific status code and error type
-@app.errorhandler(CommandException)
-def show_command_errors(ex: CommandException) -> FlaskResponse:
-    logger.warning("CommandException", exc_info=True)
-    if "text/html" in request.accept_mimetypes and not app.config["DEBUG"]:
-        path = files("superset") / "static/assets/500.html"
-        return send_file(path, max_age=0), 500
-
-    extra = ex.normalized_messages() if isinstance(ex, CommandInvalidError) else {}
-    return json_errors_response(
-        errors=[
-            SupersetError(
-                message=ex.message,
-                error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
-                level=get_error_level_from_status_code(ex.status),
-                extra=extra,
-            ),
-        ],
-        status=ex.status,
-    )
-
-
-# Catch-all, to ensure all errors from the backend conform to SIP-40
-@app.errorhandler(Exception)
-def show_unexpected_exception(ex: Exception) -> FlaskResponse:
-    logger.exception(ex)
-    if "text/html" in request.accept_mimetypes and not app.config["DEBUG"]:
-        path = files("superset") / "static/assets/500.html"
-        return send_file(path, max_age=0), 500
-
-    return json_errors_response(
-        errors=[
-            SupersetError(
-                message=utils.error_msg_from_exception(ex),
-                error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
-                level=ErrorLevel.ERROR,
-            ),
-        ],
-    )
-
-
-@app.context_processor
-def get_common_bootstrap_data() -> dict[str, Any]:
-    def serialize_bootstrap_data() -> str:
-        return json.dumps(
-            {"common": common_bootstrap_payload()},
-            default=utils.pessimistic_json_iso_dttm_ser,
-        )
-
-    return {"bootstrap_data": serialize_bootstrap_data}
-
-
 class SupersetListWidget(ListWidget):  # pylint: disable=too-few-public-methods
     template = "superset/fab_overrides/list.html"
 
@@ -713,19 +519,59 @@ def bind_field(
     return unbound_field.bind(form=form, filters=filters, **options)
 
 
+@cache_manager.cache.memoize(timeout=60)
+def cached_common_bootstrap_data(  # pylint: disable=unused-argument
+    user_id: int | None, locale: Locale | None
+) -> dict[str, Any]:
+    """Common data always sent to the client
+
+    The function is memoized as the return value only changes when user permissions
+    or configuration values change.
+    """
+
+    # should not expose API TOKEN to frontend
+    frontend_config = {
+        k: (list(conf.get(k)) if isinstance(conf.get(k), set) else conf.get(k))
+        for k in FRONTEND_CONF_KEYS
+    }
+
+    if conf.get("SLACK_API_TOKEN"):
+        frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
+            ReportRecipientType.EMAIL,
+            ReportRecipientType.SLACK,
+        ]
+    else:
+        frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
+            ReportRecipientType.EMAIL,
+        ]
+
+    # verify client has google sheets installed
+    available_specs = get_available_engine_specs()
+    frontend_config["HAS_GSHEETS_INSTALLED"] = bool(available_specs[GSheetsEngineSpec])
+
+    language = locale.language if locale else "en"
+
+    bootstrap_data = {
+        "conf": frontend_config,
+        "locale": language,
+        "language_pack": get_language_pack(language),
+        "d3_format": conf.get("D3_FORMAT"),
+        "currencies": conf.get("CURRENCIES"),
+        "feature_flags": get_feature_flags(),
+        "extra_sequential_color_schemes": conf["EXTRA_SEQUENTIAL_COLOR_SCHEMES"],
+        "extra_categorical_color_schemes": conf["EXTRA_CATEGORICAL_COLOR_SCHEMES"],
+        "theme_overrides": conf["THEME_OVERRIDES"],
+        "menu_data": menu_data(g.user),
+    }
+    bootstrap_data.update(conf["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
+    return bootstrap_data
+
+
+def common_bootstrap_payload() -> dict[str, Any]:
+    return {
+        **cached_common_bootstrap_data(utils.get_user_id(), get_locale()),
+        "flash_messages": get_flashed_messages(with_categories=True),
+    }
+
+
 FlaskForm.Meta.bind_field = bind_field
-
-
-@app.after_request
-def apply_http_headers(response: Response) -> Response:
-    """Applies the configuration's http headers to all responses"""
-
-    # HTTP_HEADERS is deprecated, this provides backwards compatibility
-    response.headers.extend(
-        {**app.config["OVERRIDE_HTTP_HEADERS"], **app.config["HTTP_HEADERS"]}
-    )
-
-    for k, v in app.config["DEFAULT_HTTP_HEADERS"].items():
-        if k not in response.headers:
-            response.headers[k] = v
-    return response
