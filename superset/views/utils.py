@@ -51,7 +51,6 @@ from superset.utils.core import DatasourceType
 from superset.utils.decorators import stats_timing
 
 logger = logging.getLogger(__name__)
-stats_logger = app.config["STATS_LOGGER"]
 
 REJECTED_FORM_DATA_KEYS: list[str] = []
 if not feature_flag_manager.is_feature_enabled("ENABLE_JAVASCRIPT_CONTROLS"):
@@ -502,6 +501,7 @@ def _deserialize_results_payload(
     payload: Union[bytes, str], query: Query, use_msgpack: Optional[bool] = False
 ) -> dict[str, Any]:
     logger.debug("Deserializing from msgpack: %r", use_msgpack)
+    stats_logger = app.config["STATS_LOGGER"]
     if use_msgpack:
         with stats_timing(
             "sqllab.query.results_backend_msgpack_deserialize", stats_logger

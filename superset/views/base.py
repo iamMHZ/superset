@@ -56,7 +56,7 @@ from wtforms import Form
 from wtforms.fields.core import Field, UnboundField
 
 from superset import (
-    app as superset_app,
+    app,
     appbuilder,
     conf,
     get_feature_flags,
@@ -126,7 +126,6 @@ FRONTEND_CONF_KEYS = (
 )
 
 logger = logging.getLogger(__name__)
-config = superset_app.config
 
 
 def get_error_msg() -> str:
@@ -445,20 +444,20 @@ def get_error_level_from_status_code(  # pylint: disable=invalid-name
 
 # SIP-40 compatible error responses; make sure APIs raise
 # SupersetErrorException or SupersetErrorsException
-@superset_app.errorhandler(SupersetErrorException)
+@app.errorhandler(SupersetErrorException)
 def show_superset_error(ex: SupersetErrorException) -> FlaskResponse:
     logger.warning("SupersetErrorException", exc_info=True)
     return json_errors_response(errors=[ex.error], status=ex.status)
 
 
-@superset_app.errorhandler(SupersetErrorsException)
+@app.errorhandler(SupersetErrorsException)
 def show_superset_errors(ex: SupersetErrorsException) -> FlaskResponse:
     logger.warning("SupersetErrorsException", exc_info=True)
     return json_errors_response(errors=ex.errors, status=ex.status)
 
 
 # Redirect to login if the CSRF token is expired
-@superset_app.errorhandler(CSRFError)
+@app.errorhandler(CSRFError)
 def refresh_csrf_token(ex: CSRFError) -> FlaskResponse:
     logger.warning("Refresh CSRF token error", exc_info=True)
 
@@ -468,12 +467,12 @@ def refresh_csrf_token(ex: CSRFError) -> FlaskResponse:
     return redirect(appbuilder.get_url_for_login)
 
 
-@superset_app.errorhandler(HTTPException)
+@app.errorhandler(HTTPException)
 def show_http_exception(ex: HTTPException) -> FlaskResponse:
     logger.warning("HTTPException", exc_info=True)
     if (
         "text/html" in request.accept_mimetypes
-        and not config["DEBUG"]
+        and not app.config["DEBUG"]
         and ex.code in {404, 500}
     ):
         path = files("superset") / f"static/assets/{ex.code}.html"
@@ -494,10 +493,10 @@ def show_http_exception(ex: HTTPException) -> FlaskResponse:
 # Temporary handler for CommandException; if an API raises a
 # CommandException it should be fixed to map it to SupersetErrorException
 # or SupersetErrorsException, with a specific status code and error type
-@superset_app.errorhandler(CommandException)
+@app.errorhandler(CommandException)
 def show_command_errors(ex: CommandException) -> FlaskResponse:
     logger.warning("CommandException", exc_info=True)
-    if "text/html" in request.accept_mimetypes and not config["DEBUG"]:
+    if "text/html" in request.accept_mimetypes and not app.config["DEBUG"]:
         path = files("superset") / "static/assets/500.html"
         return send_file(path, max_age=0), 500
 
@@ -516,10 +515,10 @@ def show_command_errors(ex: CommandException) -> FlaskResponse:
 
 
 # Catch-all, to ensure all errors from the backend conform to SIP-40
-@superset_app.errorhandler(Exception)
+@app.errorhandler(Exception)
 def show_unexpected_exception(ex: Exception) -> FlaskResponse:
     logger.exception(ex)
-    if "text/html" in request.accept_mimetypes and not config["DEBUG"]:
+    if "text/html" in request.accept_mimetypes and not app.config["DEBUG"]:
         path = files("superset") / "static/assets/500.html"
         return send_file(path, max_age=0), 500
 
@@ -534,7 +533,7 @@ def show_unexpected_exception(ex: Exception) -> FlaskResponse:
     )
 
 
-@superset_app.context_processor
+@app.context_processor
 def get_common_bootstrap_data() -> dict[str, Any]:
     def serialize_bootstrap_data() -> str:
         return json.dumps(
@@ -717,16 +716,16 @@ def bind_field(
 FlaskForm.Meta.bind_field = bind_field
 
 
-@superset_app.after_request
+@app.after_request
 def apply_http_headers(response: Response) -> Response:
     """Applies the configuration's http headers to all responses"""
 
     # HTTP_HEADERS is deprecated, this provides backwards compatibility
     response.headers.extend(
-        {**config["OVERRIDE_HTTP_HEADERS"], **config["HTTP_HEADERS"]}
+        {**app.config["OVERRIDE_HTTP_HEADERS"], **app.config["HTTP_HEADERS"]}
     )
 
-    for k, v in config["DEFAULT_HTTP_HEADERS"].items():
+    for k, v in app.config["DEFAULT_HTTP_HEADERS"].items():
         if k not in response.headers:
             response.headers[k] = v
     return response

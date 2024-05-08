@@ -54,12 +54,11 @@ from superset.thumbnails.digest import get_dashboard_digest
 from superset.utils import core as utils
 
 metadata = Model.metadata  # pylint: disable=no-member
-config = app.config
 logger = logging.getLogger(__name__)
 
 
 def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Dashboard) -> None:
-    dashboard_id = config["DASHBOARD_TEMPLATE_ID"]
+    dashboard_id = app.config["DASHBOARD_TEMPLATE_ID"]
     if dashboard_id is None:
         return
 
@@ -145,7 +144,7 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
         Slice, secondary=dashboard_slices, backref="dashboards"
     )
     owners = relationship(
-        security_manager.user_model,
+        "User",
         secondary=dashboard_user,
         passive_deletes=True,
     )
@@ -160,7 +159,7 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
     published = Column(Boolean, default=False)
     is_managed_externally = Column(Boolean, nullable=False, default=False)
     external_url = Column(Text, nullable=True)
-    roles = relationship(security_manager.role_model, secondary=DashboardRoles)
+    roles = relationship("Role", secondary=DashboardRoles)
     embedded = relationship(
         "EmbeddedDashboard",
         back_populates="dashboard",

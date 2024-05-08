@@ -59,9 +59,10 @@ class EncryptedFieldFactory:
         self._concrete_type_adapter: Optional[AbstractEncryptedFieldAdapter] = None
 
     def init_app(self, *args, **kwargs) -> None:  # type: ignore # pylint: disable=unused-argument
-        self._concrete_type_adapter = app.config[
-            "SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER"
-        ]()
+        if app:
+            self._concrete_type_adapter = app.config[
+                "SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER"
+            ]()
 
     def create(
         self, *args: list[Any], **kwargs: Optional[dict[str, Any]]
