@@ -16,7 +16,7 @@
 # under the License.
 """A collection of ORM sqlalchemy models for SQL Lab"""
 
-import builtins
+import builtins  # noqa: I001
 import inspect
 import logging
 import re
