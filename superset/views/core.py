@@ -191,9 +191,10 @@ class Superset(BaseSupersetView):
         self, viz_obj: BaseViz, response_type: str | None = None
     ) -> FlaskResponse:
         if response_type == ChartDataResultFormat.CSV:
-            return CsvResponse(
+            csv_resp: CsvResponse = CsvResponse(
                 viz_obj.get_csv(), headers=generate_download_headers("csv")
             )
+            return csv_resp
 
         if response_type == ChartDataResultType.QUERY:
             return self.get_query_string_response(viz_obj)

@@ -26,6 +26,7 @@ import simplejson as json
 import yaml
 from flask import (
     abort,
+    current_app as app,
     flash,
     g,
     redirect,
@@ -45,10 +46,6 @@ from werkzeug.exceptions import HTTPException
 from wtforms import Form
 from wtforms.fields.core import Field, UnboundField
 
-from superset import (
-    conf,
-    security_manager,
-)
 from superset.connectors.sqla import models
 from superset.exceptions import (
     SupersetErrorException,
@@ -56,6 +53,7 @@ from superset.exceptions import (
     SupersetException,
     SupersetSecurityException,
 )
+from superset.extensions import security_manager
 from superset.initialization import common_bootstrap_payload
 from superset.models.helpers import ImportExportMixin
 from superset.superset_typing import FlaskResponse
@@ -68,7 +66,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_error_msg() -> str:
-    if conf.get("SHOW_STACKTRACE"):
+    if app.conf.get("SHOW_STACKTRACE"):
         error_msg = traceback.format_exc()
     else:
         error_msg = "FATAL ERROR \n"
@@ -364,8 +362,11 @@ class CsvResponse(Response):
     Override Response to take into account csv encoding from config.py
     """
 
-    charset = conf["CSV_EXPORT"].get("encoding", "utf-8")
-    default_mimetype = "text/csv"
+    default_mimetype: str = "text/csv"
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        self.charset: str = app.conf["CSV_EXPORT"].get("encoding", "utf-8")
+        super().__init__(*args, **kwargs)
 
 
 class XlsxResponse(Response):

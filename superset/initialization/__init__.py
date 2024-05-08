@@ -48,7 +48,6 @@ from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException, SupersetErrorsException
 from superset.extensions import (
-    _event_logger,
     APP_DIR,
     appbuilder,
     async_query_manager_factory,
@@ -57,6 +56,7 @@ from superset.extensions import (
     csrf,
     db,
     encrypted_field_factory,
+    event_logger_manager,
     feature_flag_manager,
     machine_auth_provider_factory,
     manifest_processor,
@@ -78,6 +78,7 @@ from superset.tags.core import (
 from superset.utils import core as utils
 from superset.utils.core import is_test, pessimistic_connection_handling
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
+from superset.views.datasource.schemas import SamplesRequestSchema
 from superset.views.utils import json_errors_response
 
 if TYPE_CHECKING:
@@ -454,8 +455,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         self.init_views()
 
+        self.configure_schemas()
         self.register_sqla_event_listeners()
         self.register_error_handlers()
+
+    def configure_schemas(self) -> None:
+        """Callback used to configure defaults in marshmallow schemas if/where needed"""
+        SamplesRequestSchema.set_per_page_default()  # pylint: disable=no-value-for-parameter
 
     def register_sqla_event_listeners(self) -> None:
         # TODO move all sqla.event.listen to this method
@@ -660,9 +666,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         stats_logger_manager.init_app(self.app)
 
     def setup_event_logger(self) -> None:
-        _event_logger["event_logger"] = get_event_logger_from_cfg_value(
-            self.app.config.get("EVENT_LOGGER", DBEventLogger())
+        event_logger = get_event_logger_from_cfg_value(
+            self.app.config.get("EVENT_LOGGER") or DBEventLogger()
         )
+        event_logger_manager.set_event_logger(event_logger)
 
     def configure_data_sources(self) -> None:
         # Registering sources
