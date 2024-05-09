@@ -24,8 +24,6 @@ from sqlalchemy import text, TypeDecorator
 from sqlalchemy.engine import Connection, Dialect, Row
 from sqlalchemy_utils import EncryptedType
 
-from superset.extensions import db
-
 logger = logging.getLogger(__name__)
 
 
@@ -85,6 +83,8 @@ class EncryptedFieldFactory:
 
 class SecretsMigrator:
     def __init__(self, previous_secret_key: str) -> None:
+        from superset.extensions import db  # pylint: disable=import-outside-toplevel
+
         self._db = db
         self._previous_secret_key = previous_secret_key
         self._dialect: Dialect = db.engine.url.get_dialect()

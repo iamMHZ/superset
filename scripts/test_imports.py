@@ -16,13 +16,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
 import argparse
 import os
 import re
 import subprocess
 import sys
-from concurrent.futures import as_completed, ThreadPoolExecutor  # Import as_completed
+from concurrent.futures import as_completed, ThreadPoolExecutor
 from typing import List
 
 EXCLUDE_FILE_PATTERNS: List[str] = [
@@ -40,13 +39,15 @@ def test_module_import(file_path: str) -> str | None:
     try:
         subprocess.run(
             ["python", "-c", import_statement],
+            stdout=subprocess.PIPE,  # Redirect stdout to PIPE
+            stderr=subprocess.PIPE,  # Redirect stderr to PIPE
             check=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
         )
         return None
     except subprocess.CalledProcessError as e:
-        return e.stderr
+        if e.stderr:
+            return e.stderr.decode().strip()
+        return str(e)
 
 
 def get_all_module_paths(package_path: str) -> list[str]:
@@ -78,6 +79,7 @@ def test_import(package_path: str, max_workers: int | None = None) -> None:
             error = future.result()
             if error:
                 print(f"❌ {message}")
+                print(error)
                 error_count += 1
             else:
                 print(f"✅ {message}")
@@ -97,13 +99,16 @@ def parse_arguments() -> argparse.Namespace:
         default=os.cpu_count(),
         help="Number of worker threads for parallel execution (default is number of CPU cores)",
     )
+    parser.add_argument(
+        "glob",
+        metavar="glob",
+        type=str,
+        help="Glob pattern to search for Python files",
+    )
     return parser.parse_args()
 
 
 if __name__ == "__main__":
-    package_path = os.path.normpath(
-        os.path.join(os.path.dirname(__file__), "../superset")
-    )
     args = parse_arguments()
-    print(f"Processing package located at: {package_path}")
-    test_import(package_path, args.workers)
+    print(f"Processing package located at: {args.glob}")
+    test_import(args.glob, args.workers)
