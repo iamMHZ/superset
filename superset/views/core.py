@@ -30,7 +30,6 @@ from flask import (
     flash,
     g,
     redirect,
-    render_template,
     request,
     Response,
 )
@@ -95,7 +94,6 @@ from superset.views.base import (
     data_payload_response,
     deprecated,
     generate_download_headers,
-    get_error_msg,
     handle_api_exception,
     json_error_response,
     json_success,
@@ -893,13 +891,6 @@ class Superset(BaseSupersetView):
 
         datasource.raise_for_access()
         return json_success(json.dumps(sanitize_datasource_data(datasource.data)))
-
-    @app.errorhandler(500)
-    def show_traceback(self) -> FlaskResponse:
-        return (
-            render_template("superset/traceback.html", error_msg=get_error_msg()),
-            500,
-        )
 
     @event_logger.log_this
     @expose("/welcome/")

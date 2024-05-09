@@ -31,6 +31,7 @@ from flask import (
     # current_app as app,
     Flask,
     redirect,
+    render_template,
     request,
     Response,
     send_file,
@@ -78,8 +79,7 @@ from superset.tags.core import (
 from superset.utils import core as utils
 from superset.utils.core import is_test, pessimistic_connection_handling
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
-from superset.views.datasource.schemas import SamplesRequestSchema
-from superset.views.utils import json_errors_response
+from superset.views.utils import get_error_msg, json_errors_response
 
 if TYPE_CHECKING:
     from superset.app import SupersetApp
@@ -455,13 +455,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         self.init_views()
 
-        self.configure_schemas()
         self.register_sqla_event_listeners()
         self.register_error_handlers()
-
-    def configure_schemas(self) -> None:
-        """Callback used to configure defaults in marshmallow schemas if/where needed"""
-        SamplesRequestSchema.set_per_page_default()  # pylint: disable=no-value-for-parameter
 
     def register_sqla_event_listeners(self) -> None:
         # TODO move all sqla.event.listen to this method
@@ -528,6 +523,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                     ),
                 ],
                 status=ex.code or 500,
+            )
+
+        @self.app.errorhandler(500)
+        def show_traceback(self) -> FlaskResponse:  # type: ignore # pylint: disable=unused-argument
+            return (
+                render_template("superset/traceback.html", error_msg=get_error_msg()),
+                500,
             )
 
         # Temporary handler for CommandException; if an API raises a

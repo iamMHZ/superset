@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import functools
 import logging
-import traceback
 from datetime import datetime
 from typing import Any, Callable, cast
 
@@ -59,22 +58,11 @@ from superset.models.helpers import ImportExportMixin
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.utils.filters import get_dataset_access_filters
+from superset.views.utils import get_error_msg
 
 from .utils import bootstrap_user_data, json_errors_response, json_success
 
 logger = logging.getLogger(__name__)
-
-
-def get_error_msg() -> str:
-    if app.conf.get("SHOW_STACKTRACE"):
-        error_msg = traceback.format_exc()
-    else:
-        error_msg = "FATAL ERROR \n"
-        error_msg += (
-            "Stacktrace is hidden. Change the SHOW_STACKTRACE "
-            "configuration setting to enable it"
-        )
-    return error_msg
 
 
 def json_error_response(

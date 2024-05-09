@@ -20,7 +20,7 @@ import inspect
 import logging
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import Any, Callable, Optional, TYPE_CHECKING
+from typing import Any, Callable
 
 from flask import current_app as app, request
 from flask_caching import Cache
@@ -31,9 +31,6 @@ from superset.extensions import cache_manager, db
 from superset.models.cache import CacheKey
 from superset.utils.core import json_int_dttm_ser
 from superset.utils.hashing import md5_sha_from_dict
-
-if TYPE_CHECKING:
-    pass
 
 logger = logging.getLogger(__name__)
 
@@ -144,7 +141,7 @@ def memoized_func(key: str, cache: Cache = cache_manager.cache) -> Callable[...,
 def etag_cache(
     cache: Cache = cache_manager.cache,
     get_last_modified: Callable[..., datetime] | None = None,
-    max_age: Optional[int | float] = None,
+    max_age: int | float = 0,
     raise_for_access: Callable[..., Any] | None = None,
     skip: Callable[..., bool] | None = None,
 ) -> Callable[..., Any]:
@@ -162,10 +159,9 @@ def etag_cache(
     """
 
     def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
-        effective_max_age = max_age or app.config["CACHE_DEFAULT_TIMEOUT"]
-
         @wraps(f)
         def wrapper(*args: Any, **kwargs: Any) -> Response:
+            max_age = app.config["CACHE_DEFAULT_TIMEOUT"] or 0
             # Check if the user can access the resource
             if raise_for_access:
                 try:
@@ -228,9 +224,7 @@ def etag_cache(
                     response.cache_control.public = True
 
                 response.last_modified = content_changed_time
-                expiration = (
-                    effective_max_age or ONE_YEAR
-                )  # max_age=0 also means far future
+                expiration = max_age or ONE_YEAR  # max_age=0 also means far future
                 response.expires = response.last_modified + timedelta(
                     seconds=expiration
                 )
@@ -247,10 +241,9 @@ def etag_cache(
             return response.make_conditional(request)
 
         wrapper.uncached = f  # type: ignore
-        wrapper.cache_timeout = effective_max_age  # type: ignore
+        wrapper.cache_timeout = max_age  # type: ignore
         wrapper.make_cache_key = cache._memoize_make_cache_key(  # type: ignore # pylint: disable=protected-access
-            make_name=None,
-            timeout=effective_max_age,
+            make_name=None, timeout=max_age
         )
 
         return wrapper

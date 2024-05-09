@@ -17,6 +17,7 @@
 import contextlib
 import dataclasses
 import logging
+import traceback
 from collections import defaultdict
 from functools import wraps
 from typing import Any, Callable, DefaultDict, Optional, Union
@@ -147,6 +148,18 @@ def loads_request_json(request_json_data: str) -> dict[Any, Any]:
         return json.loads(request_json_data)
     except (TypeError, json.JSONDecodeError):
         return {}
+
+
+def get_error_msg() -> str:
+    if app.conf.get("SHOW_STACKTRACE"):
+        error_msg = traceback.format_exc()
+    else:
+        error_msg = "FATAL ERROR \n"
+        error_msg += (
+            "Stacktrace is hidden. Change the SHOW_STACKTRACE "
+            "configuration setting to enable it"
+        )
+    return error_msg
 
 
 def get_form_data(
