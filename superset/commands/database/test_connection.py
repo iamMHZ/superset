@@ -130,7 +130,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
 
             event_logger.log_with_context(
                 action=get_log_connection_action("test_connection_attempt", ssh_tunnel),
-                engine=database.db_engine_spec.__name__,
+                database=database,
             )
 
             def ping(engine: Engine) -> bool:
@@ -170,7 +170,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
             # Log succesful connection test with engine
             event_logger.log_with_context(
                 action=get_log_connection_action("test_connection_success", ssh_tunnel),
-                engine=database.db_engine_spec.__name__,
+                database=database,
             )
 
         except (NoSuchModuleError, ModuleNotFoundError) as ex:
@@ -178,7 +178,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 action=get_log_connection_action(
                     "test_connection_error", ssh_tunnel, ex
                 ),
-                engine=database.db_engine_spec.__name__,
+                database=database,
             )
             raise DatabaseTestConnectionDriverError(
                 message=_("Could not load database driver: {}").format(
@@ -190,7 +190,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 action=get_log_connection_action(
                     "test_connection_error", ssh_tunnel, ex
                 ),
-                engine=database.db_engine_spec.__name__,
+                database=database,
             )
             # check for custom errors (wrong username, wrong password, etc)
             errors = database.db_engine_spec.extract_errors(ex, self._context)
@@ -200,7 +200,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 action=get_log_connection_action(
                     "test_connection_error", ssh_tunnel, ex
                 ),
-                engine=database.db_engine_spec.__name__,
+                database=database,
             )
             raise DatabaseSecurityUnsafeError(message=str(ex)) from ex
         except SupersetTimeoutException as ex:
@@ -208,7 +208,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 action=get_log_connection_action(
                     "test_connection_error", ssh_tunnel, ex
                 ),
-                engine=database.db_engine_spec.__name__,
+                database=database,
             )
             # bubble up the exception to return a 408
             raise ex
@@ -217,7 +217,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 action=get_log_connection_action(
                     "test_connection_error", ssh_tunnel, ex
                 ),
-                engine=database.db_engine_spec.__name__,
+                database=database,
             )
             # bubble up the exception to return a 400
             raise ex
@@ -226,7 +226,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 action=get_log_connection_action(
                     "test_connection_error", ssh_tunnel, ex
                 ),
-                engine=database.db_engine_spec.__name__,
+                database=database,
             )
             errors = database.db_engine_spec.extract_errors(ex, self._context)
             raise DatabaseTestConnectionUnexpectedError(errors) from ex

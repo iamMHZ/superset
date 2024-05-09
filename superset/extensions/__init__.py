@@ -127,7 +127,7 @@ db = SQLA()  # pylint: disable=disallowed-name
 encrypted_field_factory = EncryptedFieldFactory()
 
 event_logger_manager = EventLoggerManager()
-event_logger = LocalProxy(lambda: event_logger_manager.get_event_logger)
+event_logger = event_logger_manager.get_event_logger()
 
 feature_flag_manager = FeatureFlagManager()
 machine_auth_provider_factory = MachineAuthProviderFactory()

@@ -619,7 +619,8 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
             "[ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) durations.",
             "example": "P1D",
         },
-        validate=validate.OneOf(choices=get_time_grain_choices),
+        # TODO reinstate at runtime since schemas shouldn't be dynamic
+        # validate=validate.OneOf(choices=get_time_grain_choices),
         required=True,
     )
     periods = fields.Integer(
@@ -979,16 +980,8 @@ class ChartDataExtrasSchema(Schema):
             "[ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) durations.",
             "example": "P1D",
         },
-        validate=validate.OneOf(
-            choices=[
-                i
-                for i in {
-                    **builtin_time_grains,
-                    **app.config["TIME_GRAIN_ADDONS"],
-                }.keys()
-                if i
-            ]
-        ),
+        # TODO reinstate at runtime since schemas shouldn't be dynamic
+        # validate=validate.OneOf(choices=[]),
         allow_none=True,
     )
     instant_time_comparison_range = fields.String(

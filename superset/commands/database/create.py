@@ -149,7 +149,7 @@ class CreateDatabaseCommand(BaseCommand):
             db.session.rollback()
             event_logger.log_with_context(
                 action=f"db_creation_failed.{ex.__class__.__name__}",
-                engine=database.db_engine_spec.__name__,
+                database=database,
             )
             raise DatabaseCreateFailedError() from ex
 
