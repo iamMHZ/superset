@@ -114,9 +114,6 @@ from superset.views.utils import (
 )
 from superset.viz import BaseViz
 
-config = app.config
-SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
-stats_logger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
