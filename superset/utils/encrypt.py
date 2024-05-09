@@ -18,17 +18,19 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 
-from flask import current_app as app
+from flask import current_app, Flask
 from flask_babel import lazy_gettext as _
 from sqlalchemy import text, TypeDecorator
 from sqlalchemy.engine import Connection, Dialect, Row
 from sqlalchemy_utils import EncryptedType
 
+from superset.extensions import db
+
 logger = logging.getLogger(__name__)
 
 
-def get_key() -> str:
-    return app.config["SECRET_KEY"]
+def get_secret_key() -> str:
+    return current_app.config["SECRET_KEY"]
 
 
 class AbstractEncryptedFieldAdapter(ABC):  # pylint: disable=too-few-public-methods
@@ -51,31 +53,38 @@ class SQLAlchemyUtilsAdapter(  # pylint: disable=too-few-public-methods
         *args: list[Any],
         **kwargs: Optional[dict[str, Any]],
     ) -> TypeDecorator:
-        return EncryptedType(*args, get_key, **kwargs)
+        if app_config:
+            return EncryptedType(*args, get_secret_key, **kwargs)
+
+        raise Exception(  # pylint: disable=broad-exception-raised
+            "Missing app_config kwarg"
+        )
 
 
 class EncryptedFieldFactory:
     def __init__(self) -> None:
         self._concrete_type_adapter: Optional[AbstractEncryptedFieldAdapter] = None
+        self._config: Optional[dict[str, Any]] = None
 
-    def init_app(self, *args, **kwargs) -> None:  # type: ignore # pylint: disable=unused-argument
-        if app:
-            self._concrete_type_adapter = app.config[
-                "SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER"
-            ]()
+    def init_app(self, app: Flask) -> None:
+        self._config = app.config
+        self._concrete_type_adapter = self._config[  # type: ignore
+            "SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER"
+        ]()
 
     def create(
         self, *args: list[Any], **kwargs: Optional[dict[str, Any]]
     ) -> TypeDecorator:
         if self._concrete_type_adapter:
-            return self._concrete_type_adapter.create(app.config, *args, **kwargs)
-        return None
+            return self._concrete_type_adapter.create(self._config, *args, **kwargs)
+
+        raise Exception(  # pylint: disable=broad-exception-raised
+            "App not initialized yet. Please call init_app first"
+        )
 
 
 class SecretsMigrator:
     def __init__(self, previous_secret_key: str) -> None:
-        from superset.extensions import db  # pylint: disable=import-outside-toplevel
-
         self._db = db
         self._previous_secret_key = previous_secret_key
         self._dialect: Dialect = db.engine.url.get_dialect()
