@@ -160,9 +160,10 @@ def etag_cache(
     dataframe cache for requests that produce the same SQL.
 
     """
-    max_age = max_age or app.config["CACHE_DEFAULT_TIMEOUT"]
 
     def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
+        effective_max_age = max_age or app.config["CACHE_DEFAULT_TIMEOUT"]
+
         @wraps(f)
         def wrapper(*args: Any, **kwargs: Any) -> Response:
             # Check if the user can access the resource
@@ -227,7 +228,9 @@ def etag_cache(
                     response.cache_control.public = True
 
                 response.last_modified = content_changed_time
-                expiration = max_age or ONE_YEAR  # max_age=0 also means far future
+                expiration = (
+                    effective_max_age or ONE_YEAR
+                )  # max_age=0 also means far future
                 response.expires = response.last_modified + timedelta(
                     seconds=expiration
                 )
@@ -244,9 +247,10 @@ def etag_cache(
             return response.make_conditional(request)
 
         wrapper.uncached = f  # type: ignore
-        wrapper.cache_timeout = max_age  # type: ignore
+        wrapper.cache_timeout = effective_max_age  # type: ignore
         wrapper.make_cache_key = cache._memoize_make_cache_key(  # type: ignore # pylint: disable=protected-access
-            make_name=None, timeout=max_age
+            make_name=None,
+            timeout=effective_max_age,
         )
 
         return wrapper
