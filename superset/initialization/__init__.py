@@ -457,6 +457,16 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         self.register_sqla_event_listeners()
         self.register_error_handlers()
+        self.register_other_views()
+
+    def register_other_views(self) -> None:
+        @talisman(force_https=False)
+        @self.app.route("/health")
+        @self.app.route("/healthcheck")
+        @self.app.route("/ping")
+        def health() -> FlaskResponse:
+            self.app.stats_logger.incr("health")
+            return "OK"
 
     def register_sqla_event_listeners(self) -> None:
         # TODO move all sqla.event.listen to this method
