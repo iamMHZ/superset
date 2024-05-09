@@ -65,7 +65,6 @@ from superset.utils import core as utils
 from superset.views.base import CsvResponse, generate_download_headers, json_success
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
 
-config = app.config
 logger = logging.getLogger(__name__)
 
 
@@ -432,7 +431,7 @@ class SqlLabRestApi(BaseSupersetApi):
         )
         execution_context_convertor = ExecutionContextConvertor()
         execution_context_convertor.set_max_row_in_display(
-            int(config.get("DISPLAY_MAX_ROW"))
+            int(app.config.get("DISPLAY_MAX_ROW"))
         )
         return ExecuteSqlCommand(
             execution_context,
@@ -442,7 +441,7 @@ class SqlLabRestApi(BaseSupersetApi):
             SqlQueryRenderImpl(get_template_processor),
             sql_json_executor,
             execution_context_convertor,
-            config["SQLLAB_CTAS_NO_LIMIT"],
+            app.config["SQLLAB_CTAS_NO_LIMIT"],
             log_params,
         )
 
@@ -457,7 +456,7 @@ class SqlLabRestApi(BaseSupersetApi):
             sql_json_executor = SynchronousSqlJsonExecutor(
                 query_dao,
                 get_sql_results,
-                config.get("SQLLAB_TIMEOUT"),
+                app.config.get("SQLLAB_TIMEOUT"),
                 feature_flag_manager.is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE"),
             )
         return sql_json_executor

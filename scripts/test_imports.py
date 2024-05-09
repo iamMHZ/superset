@@ -8,7 +8,7 @@ EXCLUDE_FILE_PATTERNS: List[str] = [
 ]
 
 
-def test_module_import(file_path: str) -> None:
+def test_module_import(file_path: str) -> bool:
     """Test if a module can be imported independently"""
     module_path = file_path.replace(".py", "").replace("/", ".")
     # if module_path.endswith("__init__"):
@@ -22,15 +22,18 @@ def test_module_import(file_path: str) -> None:
             ["python", "-c", import_statement],
             check=True,
         )
-        # print(f"✅ {import_statement}")
+        print(f"✅ {import_statement}")
+        return True
     except subprocess.CalledProcessError as e:
         print(f"❌ {import_statement}")
         if e.stderr:
             print(f"ERROR: {e.stderr}")
+        return False
 
 
 def test_import(package_path: str) -> None:
     """Test importability of all modules within a package"""
+    error_count = 0
     for root, dirs, files in os.walk(package_path):
         for file in files:
             filepath = os.path.normpath(os.path.join(root, file))
@@ -39,7 +42,10 @@ def test_import(package_path: str) -> None:
                 not re.match(pattern, relative_path)
                 for pattern in EXCLUDE_FILE_PATTERNS
             ):
-                test_module_import(relative_path)
+                success = test_module_import(relative_path)
+                if not success:
+                    error_count += 1
+    print(f"Total errors: {error_count}")
 
 
 if __name__ == "__main__":
