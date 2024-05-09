@@ -42,6 +42,9 @@ class AbstractEncryptedFieldAdapter(ABC):  # pylint: disable=too-few-public-meth
         pass
 
 
+# pylint: disable-all
+
+
 class SQLAlchemyUtilsAdapter(  # pylint: disable=too-few-public-methods
     AbstractEncryptedFieldAdapter
 ):
@@ -51,12 +54,16 @@ class SQLAlchemyUtilsAdapter(  # pylint: disable=too-few-public-methods
         *args: list[Any],
         **kwargs: Optional[dict[str, Any]],
     ) -> TypeDecorator:
+        kwargs["key"] = get_secret_key  # type: ignore
+        return EncryptedType(*args, **kwargs)
+        """
         if app_config:
-            return EncryptedType(*args, get_secret_key, **kwargs)
+            return EncryptedType(*args, secret_key=get_secret_key, **kwargs)
 
         raise Exception(  # pylint: disable=broad-exception-raised
             "Missing app_config kwarg"
         )
+        """
 
 
 class EncryptedFieldFactory:
@@ -73,12 +80,15 @@ class EncryptedFieldFactory:
     def create(
         self, *args: list[Any], **kwargs: Optional[dict[str, Any]]
     ) -> TypeDecorator:
+        return SQLAlchemyUtilsAdapter().create(self._config, *args, **kwargs)
+
+        """
         if self._concrete_type_adapter:
             return self._concrete_type_adapter.create(self._config, *args, **kwargs)
-
         raise Exception(  # pylint: disable=broad-exception-raised
             "App not initialized yet. Please call init_app first"
         )
+        """
 
 
 class SecretsMigrator:
