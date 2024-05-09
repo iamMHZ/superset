@@ -34,8 +34,6 @@ from superset.sqllab.limiting_factor import LimitingFactor
 from superset.utils import core as utils, csv
 from superset.views.utils import _deserialize_results_payload
 
-config = app.config
-
 logger = logging.getLogger(__name__)
 
 
@@ -134,7 +132,7 @@ class SqlResultExportCommand(BaseCommand):
                 self._query.schema,
             )[:limit]
 
-        csv_data = csv.df_to_escaped_csv(df, index=False, **config["CSV_EXPORT"])
+        csv_data = csv.df_to_escaped_csv(df, index=False, **app.config["CSV_EXPORT"])
 
         return {
             "query": self._query,
