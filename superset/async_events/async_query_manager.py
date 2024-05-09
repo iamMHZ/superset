@@ -21,7 +21,7 @@ from typing import Any, Literal, Optional
 
 import jwt
 import redis
-from flask import Flask, Request, request, Response, session
+from flask import current_app, Flask, Request, request, Response, session
 
 from superset.utils.core import get_user_id
 
@@ -202,6 +202,7 @@ class AsyncQueryManager:
             form_data,
             response_type,
             force,
+            soft_time_limit=current_app.config["SQLLAB_ASYNC_TIME_LIMIT_SEC"],
         )
         return job_metadata
 
@@ -225,6 +226,7 @@ class AsyncQueryManager:
             if (guest_user := security_manager.get_current_guest_user_if_guest())
             else job_metadata,
             form_data,
+            soft_time_limit=current_app.config["SQLLAB_ASYNC_TIME_LIMIT_SEC"],
         )
         return job_metadata
 

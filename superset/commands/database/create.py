@@ -17,7 +17,7 @@
 import logging
 from typing import Any, Optional
 
-from flask import current_app
+from flask import current_app as app
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
@@ -44,7 +44,6 @@ from superset.extensions import db, event_logger, feature_flag_manager, security
 from superset.models.core import Database
 
 logger = logging.getLogger(__name__)
-stats_logger = current_app.config["STATS_LOGGER"]
 
 
 class CreateDatabaseCommand(BaseCommand):
@@ -154,7 +153,7 @@ class CreateDatabaseCommand(BaseCommand):
             raise DatabaseCreateFailedError() from ex
 
         if ssh_tunnel:
-            stats_logger.incr("db_creation_success.ssh_tunnel")
+            app.stats_logger.incr("db_creation_success.ssh_tunnel")
 
         return database
 
