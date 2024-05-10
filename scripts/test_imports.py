@@ -16,45 +16,47 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
 import argparse
 import os
 import re
 import subprocess
 import sys
-from concurrent.futures import as_completed, ThreadPoolExecutor
+from concurrent.futures import as_completed, ThreadPoolExecutor  # Import as_completed
 from typing import List
 
 EXCLUDE_FILE_PATTERNS: List[str] = [
     "migrations/",
 ]
+ROOT_FOLDERS = ["superset", "tests"]
 
 
 def test_module_import(file_path: str) -> str | None:
     """Test if a module can be imported independently"""
     module_path = file_path.replace(".py", "").replace("/", ".")
-    splitted = ["superset"] + module_path.split(".")
+    splitted = module_path.split(".")
     from_part = ".".join(splitted[:-1])
     import_part = splitted[-1]
     import_statement = f"from {from_part} import {import_part}"
     try:
         subprocess.run(
             ["python", "-c", import_statement],
-            stdout=subprocess.PIPE,  # Redirect stdout to PIPE
-            stderr=subprocess.PIPE,  # Redirect stderr to PIPE
             check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
         )
         return None
     except subprocess.CalledProcessError as e:
         if e.stderr:
-            return e.stderr.decode().strip()
+            return e.stderr.decode("utf-8").strip()
         return str(e)
 
 
-def get_all_module_paths(package_path: str) -> list[str]:
+def get_module_paths(package_path: str) -> list[str]:
     paths = []
     for root, dirs, files in os.walk(package_path):
         for file in files:
-            filepath = os.path.normpath(os.path.join(root, file))
+            filepath = os.path.normpath(os.path.join(package_path, root, file))
             relative_path = os.path.relpath(filepath, package_path)
             if file.endswith(".py") and all(
                 not re.match(pattern, relative_path)
@@ -64,11 +66,21 @@ def get_all_module_paths(package_path: str) -> list[str]:
     return paths
 
 
-def test_import(package_path: str, max_workers: int | None = None) -> None:
+def test_import(
+    path_pattern: str | None = None, max_workers: int | None = None
+) -> None:
     """Test importability of all modules within a package"""
     error_count = 0
     processed_count = 0
-    paths = get_all_module_paths(package_path)
+    paths = []
+    for folder in ROOT_FOLDERS:
+        paths += get_module_paths(folder)
+    if path_pattern:
+        filtered_path = []
+        for path in paths:
+            if re.match(path_pattern, path):
+                filtered_path.append(path)
+        paths = filtered_path
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(test_module_import, path): path for path in paths}
@@ -100,15 +112,14 @@ def parse_arguments() -> argparse.Namespace:
         help="Number of worker threads for parallel execution (default is number of CPU cores)",
     )
     parser.add_argument(
-        "glob",
-        metavar="glob",
+        "path",
         type=str,
-        help="Glob pattern to search for Python files",
+        default="*",
+        help="Path filter",
     )
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_arguments()
-    print(f"Processing package located at: {args.glob}")
-    test_import(args.glob, args.workers)
+    test_import(args.path, args.workers)
