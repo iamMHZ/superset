@@ -26,7 +26,8 @@ from concurrent.futures import as_completed, ThreadPoolExecutor  # Import as_com
 from typing import List
 
 EXCLUDE_FILE_PATTERNS: List[str] = [
-    "migrations/",
+    r"^superset/migrations/",
+    r"^tests/integration_tests/migrations/",
 ]
 ROOT_FOLDERS = ["superset", "tests"]
 
