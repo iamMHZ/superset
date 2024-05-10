@@ -16,6 +16,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+"""
+Test importability of all modules within a package with parallel
+execution support.
+
+This was implemented to prevent usage of the app's context and configuration
+located at app.config within module scope. It may also identify other issues
+such as circular imports or anything else that may prevent a module from being
+imported independently.
+"""
 
 import argparse
 import os
