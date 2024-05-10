@@ -38,8 +38,6 @@ TABLE_COLUMNS = [
     "dashboards.css",
     "keyvalue.value",
     "query.extra_json",
-    "query.executed_sql",
-    "query.select_sql",
     "report_execution_log.value_row_json",
     "report_recipient.recipient_config_json",
     "report_schedule.sql",

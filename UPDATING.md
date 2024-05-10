@@ -51,6 +51,7 @@ assists people when migrating to a new version.
 ### Potential Downtime
 
 - [27392](https://github.com/apache/superset/pull/27392): Adds an index to `query.sql_editor_id` to improve performance. This may cause downtime on large deployments.
+- [28422](https://github.com/apache/superset/pull/28422): Potentially augments the `query.executed_sql` and `query.select_sql` columns for MySQL from `MEDIUMTEXT` to `LONGTEXT`. Potential downtime may be required for large deployments which previously ran [27119](https://github.com/apache/superset/pull/27119).
 
 ## 4.0.0
 
