@@ -497,9 +497,11 @@ class TabState(AuditMixinNullable, ExtraJSONMixin, Model):
     query_limit = Column(Integer)
 
     # latest query that was run
-    latest_query_id = Column(Integer)
+    latest_query_id = Column(
+        Integer, ForeignKey("query.client_id", ondelete="SET NULL")
+    )
     latest_query = relationship(
-        "Query", primaryjoin="tab_state.latest_query_id == query.client_id"
+        "Query", primaryjoin="TabState.latest_query_id == cast(Query.client_id, String)"
     )
 
     # other properties
