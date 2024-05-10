@@ -465,7 +465,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         @self.app.route("/healthcheck")
         @self.app.route("/ping")
         def health() -> FlaskResponse:
-            self.app.stats_logger.incr("health")
+            self.stats_logger.incr("health")
             return "OK"
 
     def register_sqla_event_listeners(self) -> None:
